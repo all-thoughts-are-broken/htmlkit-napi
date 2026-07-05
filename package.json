@@ -23,7 +23,8 @@
     "build": "node scripts/build.js",
     "artifact": "node scripts/prepare-artifact.js",
     "install": "node scripts/build.js",
-    "test": "node test/basic.js"
+    "test": "node test/basic.js",
+    "verify:render-artifact": "node scripts/verify-render-artifact.js"
   },
   "dependencies": {
     "cmake-js": "^8.0.0",
@@ -31,5 +32,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "pngjs": "^7.0.0"
   }
 }

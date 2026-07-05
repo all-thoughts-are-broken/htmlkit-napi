@@ -104,3 +104,61 @@ jobs:
           name: ${{ matrix.native }}
           path: artifacts/${{ matrix.native }}
           if-no-files-found: error
+
+  verify-native:
+    name: verify ${{ matrix.target }}
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            target: win32-x64-msvc
+            native: htmlkit-napi.win32-x64-msvc.node
+            runtime: win32-x64
+          - runner: windows-11-arm
+            target: win32-arm64-msvc
+            native: htmlkit-napi.win32-arm64-msvc.node
+            runtime: win32-arm64
+          - runner: ubuntu-24.04
+            target: linux-x64-gnu
+            native: htmlkit-napi.linux-x64-gnu.node
+            runtime: linux-x64
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64-gnu
+            native: htmlkit-napi.linux-arm64-gnu.node
+            runtime: linux-arm64
+    env:
+      NATIVE_FILENAME: ${{ matrix.native }}
+      HTMLKIT_NATIVE_TARGET: ${{ matrix.target }}
+      EXPECTED_RUNTIME: ${{ matrix.runtime }}
+      VISUAL_DIR: visual-output/${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install JavaScript dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Download native artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.native }}
+          path: native-artifact
+
+      - name: Render complex demo and compare output
+        run: npm run verify:render-artifact
+
+      - name: Upload render comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-complex.${{ matrix.target }}
+          path: visual-output/${{ matrix.target }}/
+          if-no-files-found: warn

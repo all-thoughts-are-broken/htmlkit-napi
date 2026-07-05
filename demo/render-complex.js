@@ -333,10 +333,13 @@ async function main() {
     allowRefit: true,
   });
 
-  const outDir = path.join(__dirname, 'output');
+  const outputFile = process.env.HTMLKIT_RENDER_OUTPUT
+    ? path.resolve(process.env.HTMLKIT_RENDER_OUTPUT)
+    : path.join(__dirname, 'output', 'complex-dashboard.png');
+  const outDir = path.dirname(outputFile);
   await fs.mkdir(outDir, { recursive: true });
-  await fs.writeFile(path.join(outDir, 'complex-dashboard.png'), image);
-  console.log(path.join(outDir, 'complex-dashboard.png'));
+  await fs.writeFile(outputFile, image);
+  console.log(outputFile);
 }
 
 main().catch((error) => {

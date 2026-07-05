@@ -4,6 +4,8 @@ out/
 dist/
 artifacts/
 demo/output/
+native-artifact/
+visual-output/
 
 CMakeCache.txt
 CMakeFiles/
