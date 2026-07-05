@@ -208,6 +208,12 @@ async function renderDebug(htmlkit, fs) {
 初始化或重新初始化 fontconfig 和 Pango font map。建议在进程启动后、首次渲染前调用
 一次，尤其是在 CI 或字体环境不固定的服务器上。
 
+在 Windows 上，如果没有设置 `FONTCONFIG_FILE` 或 `FONTCONFIG_PATH`，
+`htmlkit-napi` 会在 `%TEMP%\htmlkit-napi\fonts.conf` 自动生成一个最小
+fontconfig 配置，指向系统字体目录和当前用户字体目录。这样可以消除常见的
+`Fontconfig error: Cannot load default config file` 提示，同时仍保持单个 `.node`
+产物发布。
+
 ### `render(html, options): Promise<Buffer>`
 
 把 HTML 字符串渲染成图片 Buffer。

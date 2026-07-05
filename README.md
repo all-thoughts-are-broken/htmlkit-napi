@@ -215,6 +215,12 @@ Initializes/reinitializes fontconfig and the Pango font map. Call it once during
 process startup before rendering, especially in CI or server environments where
 font configuration can vary.
 
+On Windows, if neither `FONTCONFIG_FILE` nor `FONTCONFIG_PATH` is set,
+`htmlkit-napi` creates a minimal temporary fontconfig file under
+`%TEMP%\htmlkit-napi\fonts.conf` that points at the system and per-user Windows
+font directories. This avoids the common `Fontconfig error: Cannot load default
+config file` warning while keeping the package as a single `.node` artifact.
+
 ### `render(html, options): Promise<Buffer>`
 
 Renders an HTML string to an image buffer.
