@@ -36,7 +36,8 @@ class debug_container : public htmlkit_container {
     };
 
   public:
-    debug_container(const std::string& base_url, const container_info& info);
+    debug_container(const std::string& base_url, const container_info& info,
+                    ResourceProvider* resource_provider);
     std::string export_debug_layers();
     void set_debug_surface(cairo_surface_t* surface) { m_dbg_surface = surface; }
     void draw_text(litehtml::uint_ptr hdc, const char* text, litehtml::uint_ptr hFont,

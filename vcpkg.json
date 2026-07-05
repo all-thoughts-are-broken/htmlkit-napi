@@ -1,0 +1,31 @@
+{
+  "name": "htmlkit-napi",
+  "version-string": "0.1.0",
+  "builtin-baseline": "8cf84605ce9764de46caeb47b9e710db9493add9",
+  "dependencies": [
+    {
+      "name": "cairo",
+      "features": [
+        "fontconfig",
+        "freetype"
+      ]
+    },
+    "fontconfig",
+    "fmt",
+    "giflib",
+    "gumbo",
+    {
+      "name": "libavif",
+      "features": [
+        "dav1d"
+      ]
+    },
+    "libjpeg-turbo",
+    "pango",
+    {
+      "name": "pkgconf",
+      "host": true
+    },
+    "libwebp"
+  ]
+}

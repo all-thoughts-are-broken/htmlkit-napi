@@ -23,8 +23,6 @@ License along with this library; if not, see <https://www.gnu.org/licenses/>.
 #include <pango/pango-font.h>
 #include <vector>
 
-#include <Python.h>
-
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif

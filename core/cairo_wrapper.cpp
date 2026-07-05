@@ -26,6 +26,14 @@ License along with this library; if not, see <https://www.gnu.org/licenses/>.
 
 using namespace cairo_wrapper;
 
+#if defined(_WIN32) ||                                                           \
+    (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) &&              \
+     __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#define HTMLKIT_LITTLE_ENDIAN 1
+#else
+#define HTMLKIT_LITTLE_ENDIAN 0
+#endif
+
 void border::cairo_add_path_arc(cairo_t* cr, double x, double y, double rx, double ry,
                                 double a1, double a2, bool neg) {
     if (rx > 0 && ry > 0) {
@@ -380,7 +388,6 @@ conic_gradient::create_pattern(double angle, double radius,
     return pat;
 }
 
-// closure is pointer to PyObject* that will hold the bytes object
 cairo_status_t cairo_wrapper::write_to_vector(void* closure, const unsigned char* data,
                                               unsigned int length) {
     auto* vec = static_cast<std::vector<unsigned char>*>(closure);
@@ -498,7 +505,7 @@ cairo_status_t cairo_wrapper::cairo_surface_write_to_jpeg_mem(cairo_surface_t* s
     jpeg_mem_dest(&cinfo, data, &jpeg_len);
     cinfo.image_width = cairo_image_surface_get_width(sfc);
     cinfo.image_height = cairo_image_surface_get_height(sfc);
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#if HTMLKIT_LITTLE_ENDIAN
     // cinfo.in_color_space = JCS_EXT_BGRX;
     cinfo.in_color_space = cairo_image_surface_get_format(sfc) == CAIRO_FORMAT_ARGB32
                                ? JCS_EXT_BGRA
@@ -558,7 +565,7 @@ cairo_surface_t* cairo_wrapper::cairo_image_surface_create_from_jpeg_mem(void* d
     jpeg_mem_src(&cinfo, (const unsigned char*)data, len);
     (void)jpeg_read_header(&cinfo, TRUE);
 
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#if HTMLKIT_LITTLE_ENDIAN
     cinfo.out_color_space = JCS_EXT_BGRA;
 #else
     cinfo.out_color_space = JCS_EXT_ARGB;
@@ -604,7 +611,7 @@ cairo_wrapper::cairo_image_surface_create_from_webp_mem(const uint8_t* data,
         WebPData webp_data = {data, len};
         WebPAnimDecoderOptions opts;
         WebPAnimDecoderOptionsInit(&opts);
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#if HTMLKIT_LITTLE_ENDIAN
         opts.color_mode = MODE_BGRA;
 #else
         opts.color_mode = MODE_ARGB;
@@ -661,7 +668,7 @@ cairo_wrapper::cairo_image_surface_create_from_webp_mem(const uint8_t* data,
     uint8_t* pixels = cairo_image_surface_get_data(surface);
     int stride = cairo_image_surface_get_stride(surface);
 
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#if HTMLKIT_LITTLE_ENDIAN
     if (!WebPDecodeBGRAInto(data, len, pixels, stride * height, stride))
 #else
     if (!WebPDecodeARGBInto(data, len, pixels, stride * height, stride))
@@ -708,7 +715,7 @@ cairo_wrapper::cairo_image_surface_create_from_avif_mem(const uint8_t* data,
     avifRGBImage rgb;
     avifRGBImageSetDefaults(&rgb, decoder->image);
     rgb.depth = 8;
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#if HTMLKIT_LITTLE_ENDIAN
     rgb.format = AVIF_RGB_FORMAT_BGRA;
 #else
     rgb.format = AVIF_RGB_FORMAT_ARGB;

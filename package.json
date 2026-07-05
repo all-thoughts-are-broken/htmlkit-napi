@@ -1,0 +1,35 @@
+{
+  "name": "htmlkit-napi",
+  "version": "0.1.0",
+  "description": "N-API binding for the litehtml based htmlkit renderer",
+  "license": "MIT AND LGPL-3.0-or-later",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "build/Release/htmlkit.node",
+    "*.node",
+    "core",
+    "cmake",
+    "src",
+    "scripts",
+    "CMakeLists.txt",
+    "index.js",
+    "index.d.ts",
+    "vcpkg.json",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.js",
+    "artifact": "node scripts/prepare-artifact.js",
+    "install": "node scripts/build.js",
+    "test": "node test/basic.js"
+  },
+  "dependencies": {
+    "cmake-js": "^8.0.0",
+    "node-addon-api": "^8.9.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

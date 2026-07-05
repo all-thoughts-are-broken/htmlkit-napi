@@ -18,7 +18,6 @@ License along with this library; if not, see <https://www.gnu.org/licenses/>.
 #ifndef HTMLKIT_CONTAINER_H
 #define HTMLKIT_CONTAINER_H
 
-#include <Python.h>
 #include <cairo.h>
 #include <litehtml.h>
 #include <map>
@@ -27,7 +26,7 @@ License along with this library; if not, see <https://www.gnu.org/licenses/>.
 
 #include "cairo_wrapper.h"
 #include "container_info.h"
-#include "py_synchron.h"
+#include "resource_provider.h"
 
 class htmlkit_container : public litehtml::document_container {
     cairo_wrapper::clip_box::vector m_clips;
@@ -38,15 +37,12 @@ class htmlkit_container : public litehtml::document_container {
 
     container_info m_info;
 
-    std::vector<std::tuple<std::string, std::string, std::unique_ptr<PyWaiter>>>
-        m_img_fetch_waiters;
     std::map<std::tuple<std::string, std::string>, cairo_surface_t*> m_img_surfaces;
+    ResourceProvider* m_resource_provider;
 
   public:
-    PyObject *m_img_fetch_fn, *m_css_fetch_fn, *m_loop;
-    PyObject *asyncio_run_coroutine_threadsafe, *exception_logger, *urljoin;
-
-    htmlkit_container(const std::string& base_url, const container_info& info);
+    htmlkit_container(const std::string& base_url, const container_info& info,
+                      ResourceProvider* resource_provider);
     ~htmlkit_container() override;
 
     litehtml::uint_ptr create_font(const litehtml::font_description& descr,
@@ -138,8 +134,6 @@ class htmlkit_container : public litehtml::document_container {
                          litehtml::pixel_t y, int cx, int cy);
     static cairo_surface_t* scale_surface(cairo_surface_t* surface, int width,
                                           int height);
-    void process_images();
-    void handle_exception() const;
     std::string call_urljoin(const char* base, const char* url);
 };
 

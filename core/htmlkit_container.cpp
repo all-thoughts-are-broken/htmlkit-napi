@@ -16,9 +16,9 @@ License along with this library; if not, see <https://www.gnu.org/licenses/>.
 */
 
 #include "htmlkit_container.h"
+#include "base64.h"
 #include "cairo_wrapper.h"
 #include <array>
-#include <libbase64.h>
 #include <pango/pango-font.h>
 #include <pango/pango.h>
 #include <pango/pangocairo.h>
@@ -1159,8 +1159,14 @@ void htmlkit_container::draw_text(litehtml::uint_ptr hdc, const char* text,
 #pragma region CUSTOM
 
 htmlkit_container::htmlkit_container(const std::string& base_url,
-                                     const container_info& info)
-    : m_base_url(base_url), m_info(info) {
+                                     const container_info& info,
+                                     ResourceProvider* resource_provider)
+    : m_base_url(base_url), m_info(info),
+      m_resource_provider(resource_provider) {
+    static NullResourceProvider default_provider;
+    if (m_resource_provider == nullptr) {
+        m_resource_provider = &default_provider;
+    }
     m_temp_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 2, 2);
     m_temp_cr = cairo_create(m_temp_surface);
     cairo_save(m_temp_cr);
@@ -1207,15 +1213,7 @@ std::vector<unsigned char> decode_data_url_base64(const char* input) {
     if (base64_len == 0)
         return {};
 
-    size_t out_capacity = base64_len / 4 * 3 + 4;
-    std::vector<unsigned char> decoded(out_capacity);
-
-    size_t out_len = 0;
-    base64_decode(base64_start, base64_len, reinterpret_cast<char*>(decoded.data()),
-                  &out_len, 0);
-
-    decoded.resize(out_len);
-    return std::move(decoded);
+    return base64_decode(base64_start, base64_len);
 }
 
 cairo_surface_t* create_image_from_data(unsigned char* buf, size_t size) {
@@ -1248,6 +1246,7 @@ cairo_surface_t* create_image_from_data(unsigned char* buf, size_t size) {
 
 void htmlkit_container::load_image(const char* src, const char* baseurl,
                                    bool redraw_on_ready) {
+    (void)redraw_on_ready;
     if (src == nullptr) {
         src = "";
     }
@@ -1264,56 +1263,19 @@ void htmlkit_container::load_image(const char* src, const char* baseurl,
             }
         }
     }
-    if (m_img_fetch_fn == nullptr) {
-        return;
-    }
-    GILState gil;
     std::string joined_url = call_urljoin(baseurl, src);
-    const PyObjectPtr awaitable(
-        PyObject_CallFunction(m_img_fetch_fn, "s", joined_url.c_str()));
-    if (awaitable == nullptr) {
-        handle_exception();
+    auto image = m_resource_provider->fetch_image(joined_url);
+    if (!image || image->empty()) {
         return;
     }
-
-    const PyObjectPtr future(PyObject_CallFunctionObjArgs(
-        asyncio_run_coroutine_threadsafe, awaitable.ptr, m_loop, nullptr));
-    if (future == nullptr) {
-        handle_exception();
-        return;
-    }
-
-    auto waiter = std::make_unique<PyWaiter>();
-    waiter->name = "load_image " + std::string(src);
-    if (!attach_waiter(future.ptr, waiter.get())) {
-        handle_exception();
-        return;
-    }
-    m_img_fetch_waiters.emplace_back(src, baseurl, std::move(waiter));
-}
-void htmlkit_container::process_images() {
-    GILState gil;
-    for (auto& [src, baseurl, waiter] : m_img_fetch_waiters) {
-        PyObjectPtr image(waiter_wait(waiter.get()));
-        if (image == nullptr) {
-            handle_exception();
-            continue;
-        }
-        if (!PyBytes_Check(image.ptr)) {
-            continue;
-        }
-        char* buf;
-        Py_ssize_t size;
-        if (PyBytes_AsStringAndSize(image.ptr, &buf, &size) < 0) {
-            handle_exception();
-            continue;
-        }
-        if (cairo_surface_t* surface =
-                create_image_from_data(reinterpret_cast<unsigned char*>(buf), size)) {
-            m_img_surfaces.emplace(std::make_tuple(src, baseurl), surface);
+    if (cairo_surface_t* surface =
+            create_image_from_data(image->data(), image->size())) {
+        m_img_surfaces.emplace(std::make_tuple(src, baseurl), surface);
+        if (joined_url != src) {
+            m_img_surfaces.emplace(std::make_tuple(joined_url, baseurl),
+                                   cairo_surface_reference(surface));
         }
     }
-    m_img_fetch_waiters.clear();
 }
 
 cairo_surface_t* htmlkit_container::get_image(const char* url, const char* baseurl) {
@@ -1323,8 +1285,12 @@ cairo_surface_t* htmlkit_container::get_image(const char* url, const char* baseu
     if (baseurl == nullptr || !baseurl[0]) {
         baseurl = m_base_url.c_str();
     }
-    process_images();
     auto surface_it = m_img_surfaces.find(std::make_tuple(url, baseurl));
+    if (surface_it != m_img_surfaces.end()) {
+        return cairo_surface_reference(surface_it->second);
+    }
+    std::string joined_url = call_urljoin(baseurl, url);
+    surface_it = m_img_surfaces.find(std::make_tuple(joined_url, baseurl));
     if (surface_it != m_img_surfaces.end()) {
         return cairo_surface_reference(surface_it->second);
     }
@@ -1339,9 +1305,6 @@ std::function<void()> htmlkit_container::import_css(
     litehtml::string base_url = origin_baseurl.empty() ? m_base_url : origin_baseurl;
 
     auto empty = [=]() { on_imported("", base_url); };
-    if (m_css_fetch_fn == nullptr) {
-        return empty;
-    }
 
     if (strncmp(url.c_str(), "data:", 5) == 0 && m_info.native_data_scheme) {
         auto decoded = decode_data_url_base64(url.c_str());
@@ -1353,86 +1316,19 @@ std::function<void()> htmlkit_container::import_css(
         return [=]() { on_imported(css_text, base_url); };
     }
 
-    GILState gil;
     std::string joined_url = call_urljoin(base_url.c_str(), url.c_str());
-    const PyObjectPtr awaitable(
-        PyObject_CallFunction(m_css_fetch_fn, "s", joined_url.c_str()));
-    if (awaitable == nullptr) {
-        handle_exception();
-        return empty;
-    }
-    PyObjectPtr future(PyObject_CallFunctionObjArgs(asyncio_run_coroutine_threadsafe,
-                                                    awaitable.ptr, m_loop, nullptr));
-    if (future == nullptr) {
-        handle_exception();
-        return empty;
-    }
-    auto waiter = std::make_shared<PyWaiter>();
-    waiter->name = "import_css " + joined_url;
-    if (!attach_waiter(future.ptr, waiter.get())) {
-        handle_exception();
-        return empty;
-    }
-
     return [=]() {
-        GILState gil_inner;
-        PyObjectPtr css_text(waiter_wait(waiter.get()));
-        if (css_text == nullptr) {
-            handle_exception();
+        auto css_text = m_resource_provider->fetch_css(joined_url);
+        if (!css_text) {
             on_imported("", joined_url);
-            return;
+        } else {
+            on_imported(*css_text, joined_url);
         }
-        if (!PyUnicode_Check(css_text.ptr)) {
-            handle_exception();
-            on_imported("", joined_url);
-            return;
-        }
-        Py_ssize_t len;
-        const char* css_str = PyUnicode_AsUTF8AndSize(css_text.ptr, &len);
-        if (css_str == nullptr) {
-            handle_exception();
-            on_imported("", joined_url);
-            return;
-        }
-        on_imported(litehtml::string(css_str, (size_t)len), joined_url);
     };
 }
 
-void htmlkit_container::handle_exception() const {
-    if (exception_logger == nullptr) {
-        PyErr_Print();
-        return;
-    }
-    PyObject *exc_ty = nullptr, *exc_val = nullptr, *exc_tb = nullptr;
-    PyErr_Fetch(&exc_ty, &exc_val, &exc_tb);
-    if (exc_val == nullptr) {
-        return;
-    }
-    PyErr_NormalizeException(&exc_ty, &exc_val, &exc_tb);
-    if (exc_tb != nullptr) {
-        PyException_SetTraceback(exc_val, exc_tb);
-    }
-    PyObject* log_result = PyObject_CallFunctionObjArgs(
-        exception_logger, exc_ty, exc_val, exc_tb ? exc_tb : Py_None, nullptr);
-    if (log_result == nullptr) {
-        PyErr_Print();
-        PyErr_Restore(exc_ty, exc_val, exc_tb);
-        PyErr_Print();
-    }
-}
-
 std::string htmlkit_container::call_urljoin(const char* base, const char* url) {
-    std::string joined;
-    const PyObjectPtr joined_url_obj(PyObject_CallFunction(urljoin, "ss", base, url));
-    if (joined_url_obj != nullptr) {
-        Py_ssize_t _len;
-        joined = PyUnicode_AsUTF8AndSize(joined_url_obj.ptr, &_len);
-    }
-    if (joined.empty()) {
-        handle_exception();
-        joined = url;
-    }
-    return joined;
+    return m_resource_provider->join_url(base ? base : "", url ? url : "");
 }
 
 #pragma endregion

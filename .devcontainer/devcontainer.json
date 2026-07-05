@@ -1,61 +1,36 @@
 {
-    "name": "nonebot-plugin-htmlkit",
-    "image": "mcr.microsoft.com/devcontainers/cpp",
-    "features": {
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-        "ghcr.io/devcontainers/features/python:1": {
-            "toolsToInstall": "cibuildwheel,ruff,uv"
-        },
-        "./xmake": {}
+  "name": "htmlkit-napi",
+  "image": "mcr.microsoft.com/devcontainers/cpp",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
     },
-    "postCreateCommand":
-        "git submodule update --init --recursive && uv sync -v --group dev",
-    "customizations": {
-        "vscode": {
-            "settings": {
-                "python.analysis.diagnosticMode": "workspace",
-                "[python]": {
-                    "editor.defaultFormatter": "charliermarsh.ruff",
-                    "editor.codeActionsOnSave": {
-                        "source.fixAll.ruff": "explicit",
-                        "source.organizeImports": "explicit"
-                    }
-                },
-                "[c]": {
-                    "editor.defaultFormatter": "xaver.clang-format"
-                },
-                "[javascript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[html]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[typescript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[javascriptreact]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[typescriptreact]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "files.exclude": {
-                    "**/__pycache__": true
-                },
-                "files.watcherExclude": {
-                    "**/target/**": true,
-                    "**/__pycache__": true
-                },
-                "explorer.excludeGitIgnore": true
-            },
-            "extensions": [
-                "xaver.clang-format",
-                "charliermarsh.ruff",
-                "ms-python.python",
-                "ms-python.vscode-pylance",
-                "EditorConfig.EditorConfig",
-                "esbenp.prettier-vscode"
-            ]
-        }
+    "ghcr.io/devcontainers/features/cmake:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "npm install",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "[c]": {
+          "editor.defaultFormatter": "xaver.clang-format"
+        },
+        "[cpp]": {
+          "editor.defaultFormatter": "xaver.clang-format"
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "explorer.excludeGitIgnore": true
+      },
+      "extensions": [
+        "xaver.clang-format",
+        "EditorConfig.EditorConfig",
+        "esbenp.prettier-vscode"
+      ]
     }
+  }
 }

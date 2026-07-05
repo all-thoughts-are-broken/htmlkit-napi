@@ -1,15 +1,16 @@
 #include <fmt/core.h>
-#include <libbase64.h>
 #include <vector>
 
+#include "base64.h"
 #include "cairo_wrapper.h"
 #include "debug_container.h"
 
 #include <pango/pango-font.h>
 
 debug_container::debug_container(const std::string& base_url,
-                                 const container_info& info)
-    : htmlkit_container(base_url, info) {}
+                                 const container_info& info,
+                                 ResourceProvider* resource_provider)
+    : htmlkit_container(base_url, info, resource_provider) {}
 
 void debug_container::clear_dbg_surface() const {
     const managed_cairo_t cr(m_dbg_surface);
@@ -88,12 +89,7 @@ std::string make_html(
     for (size_t i = 0; i < images.size(); ++i) {
         const auto& data = std::get<0>(images[i]);
 
-        // base64 encode
-        size_t out_len = 4 * ((data.size() + 2) / 3);
-        std::string b64(out_len, '\0');
-        base64_encode(reinterpret_cast<const char*>(data.data()), data.size(),
-                      b64.data(), &out_len, 0);
-        b64.resize(out_len);
+        std::string b64 = base64_encode(data.data(), data.size());
 
         html += fmt::format(
             R"(<img id="img{}" class="layer" src="data:image/png;base64,{}" style="opacity:1.0; display:block;">
