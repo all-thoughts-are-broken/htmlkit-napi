@@ -32,6 +32,43 @@ if(MSVC)
       "${_HTMLKIT_MSVC_RUNTIME_LIBRARY}" CACHE STRING "" FORCE)
 endif()
 
+if(WIN32 AND NOT PKG_CONFIG_EXECUTABLE)
+  set(_HTMLKIT_PKG_CONFIG_TRIPLETS)
+  if(DEFINED VCPKG_HOST_TRIPLET)
+    list(APPEND _HTMLKIT_PKG_CONFIG_TRIPLETS "${VCPKG_HOST_TRIPLET}")
+  endif()
+  if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(AMD64|x86_64)$")
+    list(APPEND _HTMLKIT_PKG_CONFIG_TRIPLETS "x64-windows")
+  elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(ARM64|aarch64)$")
+    list(APPEND _HTMLKIT_PKG_CONFIG_TRIPLETS "arm64-windows")
+  endif()
+  if(DEFINED VCPKG_TARGET_TRIPLET)
+    list(APPEND _HTMLKIT_PKG_CONFIG_TRIPLETS "${VCPKG_TARGET_TRIPLET}")
+  endif()
+
+  list(REMOVE_DUPLICATES _HTMLKIT_PKG_CONFIG_TRIPLETS)
+  set(_HTMLKIT_PKG_CONFIG_PATHS)
+  foreach(_HTMLKIT_PKG_CONFIG_TRIPLET IN LISTS _HTMLKIT_PKG_CONFIG_TRIPLETS)
+    if(DEFINED VCPKG_INSTALLED_DIR)
+      list(APPEND _HTMLKIT_PKG_CONFIG_PATHS
+        "${VCPKG_INSTALLED_DIR}/${_HTMLKIT_PKG_CONFIG_TRIPLET}/tools/pkgconf"
+        "${VCPKG_INSTALLED_DIR}/${_HTMLKIT_PKG_CONFIG_TRIPLET}/tools/pkg-config"
+      )
+    endif()
+    list(APPEND _HTMLKIT_PKG_CONFIG_PATHS
+      "${CMAKE_BINARY_DIR}/vcpkg_installed/${_HTMLKIT_PKG_CONFIG_TRIPLET}/tools/pkgconf"
+      "${CMAKE_BINARY_DIR}/vcpkg_installed/${_HTMLKIT_PKG_CONFIG_TRIPLET}/tools/pkg-config"
+      "${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/${_HTMLKIT_PKG_CONFIG_TRIPLET}/tools/pkgconf"
+      "${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/${_HTMLKIT_PKG_CONFIG_TRIPLET}/tools/pkg-config"
+    )
+  endforeach()
+
+  find_program(PKG_CONFIG_EXECUTABLE
+    NAMES pkgconf pkgconf.exe pkg-config pkg-config.exe
+    PATHS ${_HTMLKIT_PKG_CONFIG_PATHS}
+    NO_DEFAULT_PATH)
+endif()
+
 find_package(PkgConfig REQUIRED)
 set(PKG_CONFIG_ARGN "--static" CACHE STRING "Arguments for pkg-config" FORCE)
 pkg_check_modules(PANGO REQUIRED IMPORTED_TARGET pangocairo pango)
