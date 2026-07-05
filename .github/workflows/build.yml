@@ -51,7 +51,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y autoconf autoconf-archive automake build-essential libtool ninja-build
+          sudo apt-get install -y autoconf autoconf-archive automake build-essential libtool nasm ninja-build
 
       - name: Install vcpkg
         uses: lukka/run-vcpkg@v11
