@@ -146,5 +146,13 @@ endif()
 
 if(UNIX AND NOT APPLE)
   target_link_options(htmlkit PRIVATE -static-libstdc++ -static-libgcc)
-  target_link_libraries(htmlkit PRIVATE -static-libstdc++ -static-libgcc)
+  target_link_libraries(htmlkit PRIVATE
+    -static-libstdc++
+    -static-libgcc
+    -Wl,-Bstatic
+    stdc++
+    gcc
+    gcc_eh
+    -Wl,-Bdynamic
+  )
 endif()
