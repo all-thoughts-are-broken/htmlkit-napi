@@ -38,6 +38,16 @@ jobs:
             triplet: arm64-linux
             generator_platform: ''
             native: htmlkit-napi.linux-arm64-gnu.node
+          - os: macos
+            runner: macos-15-intel
+            triplet: x64-osx
+            generator_platform: ''
+            native: htmlkit-napi.darwin-x64.node
+          - os: macos
+            runner: macos-15
+            triplet: arm64-osx
+            generator_platform: ''
+            native: htmlkit-napi.darwin-arm64.node
 
     steps:
       - uses: actions/checkout@v5
@@ -52,6 +62,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y autoconf autoconf-archive automake build-essential libtool nasm ninja-build
+
+      - name: Install macOS build tools
+        if: runner.os == 'macOS'
+        run: |
+          brew install autoconf automake libtool nasm ninja
 
       - name: Install vcpkg
         uses: lukka/run-vcpkg@v11
@@ -91,8 +106,19 @@ jobs:
             exit 1
           fi
 
+      - name: Verify macOS native dependencies
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          otool -L build/Release/htmlkit.node | tee otool.txt
+          if grep -Ei 'build/vcpkg_installed|/vcpkg/|@rpath/lib(cairo|pango|fontconfig|glib|gobject|gio|gmodule|harfbuzz|freetype|jpeg|png|webp|avif|gumbo|fmt|intl|ffi|pcre2|pixman|fribidi|brotli|dav1d).*\.dylib' otool.txt; then
+            echo "htmlkit.node has forbidden dynamic dependencies." >&2
+            exit 1
+          fi
+
       - name: Test
-        if: matrix.triplet == 'x64-windows-static' || matrix.triplet == 'x64-linux' || matrix.triplet == 'arm64-linux'
+        if: matrix.triplet != 'arm64-windows-static'
         run: npm test
 
       - name: Prepare native artifact
@@ -129,6 +155,14 @@ jobs:
             target: linux-arm64-gnu
             native: htmlkit-napi.linux-arm64-gnu.node
             runtime: linux-arm64
+          - runner: macos-15-intel
+            target: darwin-x64
+            native: htmlkit-napi.darwin-x64.node
+            runtime: darwin-x64
+          - runner: macos-15
+            target: darwin-arm64
+            native: htmlkit-napi.darwin-arm64.node
+            runtime: darwin-arm64
     env:
       NATIVE_FILENAME: ${{ matrix.native }}
       HTMLKIT_NATIVE_TARGET: ${{ matrix.target }}

@@ -21,11 +21,6 @@ function findFromCommand() {
   return exe ? path.dirname(exe.trim()) : null;
 }
 
-if (process.platform === 'darwin') {
-  console.error('macOS is not supported by this build.');
-  process.exit(1);
-}
-
 const commandRoot = findFromCommand();
 const vcpkgRoot =
   existingToolchain(commandRoot) ? commandRoot : process.env.VCPKG_ROOT;
@@ -43,6 +38,10 @@ function defaultTriplet() {
   if (process.platform === 'linux') {
     if (process.arch === 'x64') return 'x64-linux';
     if (process.arch === 'arm64') return 'arm64-linux';
+  }
+  if (process.platform === 'darwin') {
+    if (process.arch === 'x64') return 'x64-osx';
+    if (process.arch === 'arm64') return 'arm64-osx';
   }
   console.error(`Unsupported platform/architecture: ${process.platform}/${process.arch}`);
   process.exit(1);
@@ -105,6 +104,11 @@ const args = [
 ];
 if (fs.existsSync(overlayTriplets)) {
   args.push(`--CDVCPKG_OVERLAY_TRIPLETS=${overlayTriplets}`);
+}
+if (process.platform === 'darwin') {
+  args.push(
+    `--CDCMAKE_OSX_ARCHITECTURES=${archFromTriplet(triplet) === 'x64' ? 'x86_64' : 'arm64'}`,
+  );
 }
 if (process.env.CMAKE_GENERATOR_PLATFORM) {
   args.push('-A', process.env.CMAKE_GENERATOR_PLATFORM);

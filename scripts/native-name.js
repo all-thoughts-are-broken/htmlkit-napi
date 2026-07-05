@@ -6,6 +6,8 @@ function targetFromTriplet(triplet) {
   if (triplet === 'arm64-windows-static') return 'win32-arm64-msvc';
   if (triplet === 'x64-linux') return 'linux-x64-gnu';
   if (triplet === 'arm64-linux') return 'linux-arm64-gnu';
+  if (triplet === 'x64-osx') return 'darwin-x64';
+  if (triplet === 'arm64-osx') return 'darwin-arm64';
   return null;
 }
 
@@ -17,6 +19,10 @@ function targetFromRuntime(platform = process.platform, arch = process.arch) {
   if (platform === 'linux') {
     if (arch === 'x64') return 'linux-x64-gnu';
     if (arch === 'arm64') return 'linux-arm64-gnu';
+  }
+  if (platform === 'darwin') {
+    if (arch === 'x64') return 'darwin-x64';
+    if (arch === 'arm64') return 'darwin-arm64';
   }
   return null;
 }

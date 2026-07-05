@@ -6,12 +6,12 @@ N-API binding for the litehtml based HTML renderer.
 
 - Windows x64/arm64
 - Linux x64/arm64
-
-macOS is intentionally not supported.
+- macOS x64/arm64
 
 The build is configured for a single addon artifact. Third-party vcpkg
 dependencies are linked statically into `htmlkit.node`; do not ship companion
-vcpkg DLLs or shared objects with the package.
+vcpkg DLLs, shared objects, or dylibs with the package. macOS builds may still
+depend on system dylibs and frameworks provided by macOS.
 
 GitHub Actions uploads one `.node` artifact per target:
 
@@ -19,6 +19,8 @@ GitHub Actions uploads one `.node` artifact per target:
 - `htmlkit-napi.win32-arm64-msvc.node`
 - `htmlkit-napi.linux-x64-gnu.node`
 - `htmlkit-napi.linux-arm64-gnu.node`
+- `htmlkit-napi.darwin-x64.node`
+- `htmlkit-napi.darwin-arm64.node`
 
 ## Prerequisites
 
@@ -43,6 +45,8 @@ VCPKG_TARGET_TRIPLET=x64-windows-static npm run build
 VCPKG_TARGET_TRIPLET=arm64-windows-static npm run build
 VCPKG_TARGET_TRIPLET=x64-linux npm run build
 VCPKG_TARGET_TRIPLET=arm64-linux npm run build
+VCPKG_TARGET_TRIPLET=x64-osx npm run build
+VCPKG_TARGET_TRIPLET=arm64-osx npm run build
 ```
 
 If `VCPKG_TARGET_TRIPLET` is omitted, `scripts/build.js` selects a static
