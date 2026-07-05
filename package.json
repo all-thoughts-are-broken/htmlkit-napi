@@ -17,7 +17,8 @@
     "index.d.ts",
     "vcpkg.json",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "README.zh-CN.md"
   ],
   "scripts": {
     "build": "node scripts/build.js",
